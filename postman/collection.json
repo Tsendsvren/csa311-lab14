@@ -1,0 +1,432 @@
+{
+    "info": {
+        "name": "Tsendsuren — JSONPlaceholder",
+        "_postman_id": "lab14-jsonplaceholder-collection",
+        "description": "F.CSM311 Бие даалт 14 — JSONPlaceholder API тест. CRUD үйлдлүүд, chain, negative test, pre-request script бүхий бүрэн collection.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "auth": {
+        "type": "noauth"
+    },
+    "variable": [],
+    "item": [
+        {
+            "name": "Posts",
+            "description": "Нийтлэлтэй холбоотой бүх CRUD үйлдлүүд",
+            "item": [
+                {
+                    "name": "Happy GET — Нийтлэлүүдийн жагсаалт",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/posts",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["posts"]
+                        },
+                        "description": "Бүх нийтлэлүүдийг авах — 200 ба array буцаах ёстой"
+                    },
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "// Pre-request: хүсэлт явуулахын өмнө timestamp тэмдэглэх",
+                                    "pm.environment.set('requestTimestamp', new Date().toISOString());",
+                                    "console.log('Request started at:', pm.environment.get('requestTimestamp'));"
+                                ]
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200 байх ёстой', () => {",
+                                    "  pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "pm.test('Response 1 секундэд багтах ёстой', () => {",
+                                    "  pm.expect(pm.response.responseTime).to.be.below(1000);",
+                                    "});",
+                                    "",
+                                    "pm.test('Response нь array байх ёстой', () => {",
+                                    "  const data = pm.response.json();",
+                                    "  pm.expect(data).to.be.an('array');",
+                                    "  pm.expect(data.length).to.be.above(0);",
+                                    "});",
+                                    "",
+                                    "pm.test('Post объект шаардлагатай талбаруудтай байх ёстой', () => {",
+                                    "  const data = pm.response.json();",
+                                    "  const post = data[0];",
+                                    "  pm.expect(post).to.have.property('id');",
+                                    "  pm.expect(post).to.have.property('title');",
+                                    "  pm.expect(post).to.have.property('body');",
+                                    "  pm.expect(post).to.have.property('userId');",
+                                    "});",
+                                    "",
+                                    "pm.test('ID нь number төрлийн байх ёстой', () => {",
+                                    "  const data = pm.response.json();",
+                                    "  pm.expect(data[0].id).to.be.a('number');",
+                                    "});",
+                                    "",
+                                    "pm.test('Content-Type JSON байх ёстой', () => {",
+                                    "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                                    "});",
+                                    "",
+                                    "// Chain: дараагийн request-д ашиглах postId хадгалах",
+                                    "const posts = pm.response.json();",
+                                    "pm.environment.set('existingPostId', posts[0].id);",
+                                    "pm.environment.set('existingUserId', posts[0].userId);"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "GET by ID — Нэг нийтлэл",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/posts/{{existingPostId}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["posts", "{{existingPostId}}"]
+                        },
+                        "description": "ID-аар нэг нийтлэл авах — өмнөх response-оос chain хийсэн existingPostId ашиглана"
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200 байх ёстой', () => {",
+                                    "  pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "pm.test('Response 1 секундэд багтах ёстой', () => {",
+                                    "  pm.expect(pm.response.responseTime).to.be.below(1000);",
+                                    "});",
+                                    "",
+                                    "pm.test('Зөв post буцаасан байх ёстой', () => {",
+                                    "  const data = pm.response.json();",
+                                    "  pm.expect(data.id).to.eql(pm.environment.get('existingPostId'));",
+                                    "});",
+                                    "",
+                                    "pm.test('Title нь хоосон биш байх ёстой', () => {",
+                                    "  const data = pm.response.json();",
+                                    "  pm.expect(data.title).to.be.a('string').and.have.length.above(0);",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ]
+                },  
+                {   
+                        "name": "POST — Шинэ нийтлэл үүсгэх",
+                        "request": {
+                            "method": "POST",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": {
+                                "mode": "raw",
+                                "raw": "{\n  \"title\": \"{{newPostTitle}}\",\n  \"body\": \"Энэ бол автоматаар үүсгэсэн тестийн нийтлэл. Timestamp: {{requestTimestamp}}\",\n  \"userId\": 1\n}"
+                            },
+                            "url": {
+                                "raw": "{{baseUrl}}/posts",
+                                "host": ["{{baseUrl}}"],
+                                "path": ["posts"]
+                            },
+                            "description": "Шинэ нийтлэл үүсгэх — 201 ба шинэ id буцаах ёстой"
+                        },
+                        "event": [
+                            {
+                                "listen": "prerequest",
+                                "script": {
+                                    "type": "text/javascript",
+                                    "exec": [
+                                        "// Pre-request: random тестийн гарчиг үүсгэх",
+                                        "const randomId = Math.floor(Math.random() * 10000);",
+                                        "pm.environment.set('newPostTitle', `Test Post #${randomId} — ${new Date().toLocaleDateString()}`);",
+                                        "pm.environment.set('requestTimestamp', new Date().toISOString());",
+                                        "console.log('Creating post with title:', pm.environment.get('newPostTitle'));"
+                                    ]
+                                }
+                            },
+                            {
+                                "listen": "test",
+                                "script": {
+                                    "type": "text/javascript",
+                                    "exec": [
+                                        "pm.test('Status 201 байх ёстой', () => {",
+                                        "  pm.response.to.have.status(201);",
+                                        "});",
+                                        "",
+                                        "pm.test('Response 2 секундэд багтах ёстой', () => {",
+                                        "  pm.expect(pm.response.responseTime).to.be.below(2000);",
+                                        "});",
+                                        "",
+                                        "pm.test('Шинэ ID буцаасан байх ёстой', () => {",
+                                        "  const data = pm.response.json();",
+                                        "  pm.expect(data).to.have.property('id');",
+                                        "  pm.expect(data.id).to.be.a('number');",
+                                        "});",
+                                        "",
+                                        "pm.test('Title зөв хадгалагдсан байх ёстой', () => {",
+                                        "  const data = pm.response.json();",
+                                        "  pm.expect(data.title).to.eql(pm.environment.get('newPostTitle'));",
+                                        "});",
+                                        "",
+                                        "// Chain: үүсгэсэн post-ийн ID-г дараагийн request-д дамжуулах",
+                                        "const created = pm.response.json();",
+                                        "pm.environment.set('createdPostId', created.id);"
+                                    ]
+                                }
+                            }
+                        ]
+                },  
+                {   
+                        "name": "PUT — Нийтлэл бүрэн шинэчлэх",
+                        "request": {
+                            "method": "PUT",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": {
+                                "mode": "raw",
+                                "raw": "{\n  \"id\": 1,\n  \"title\": \"Шинэчилсэн гарчиг\",\n  \"body\": \"Бүрэн шинэчилсэн агуулга — PUT үйлдэл\",\n  \"userId\": 1\n}"
+                            },
+                            "url": {
+                                "raw": "{{baseUrl}}/posts/1",
+                                "host": ["{{baseUrl}}"],
+                                "path": ["posts", "1"]
+                            },
+                            "description": "ID=1 нийтлэлийг бүрэн шинэчлэх — 200 ба өөрчлөлт хадгалагдсан байх ёстой"
+                        },
+                        "event": [
+                            {
+                                "listen": "test",
+                                "script": {
+                                    "type": "text/javascript",
+                                    "exec": [
+                                        "pm.test('Status 200 байх ёстой', () => {",
+                                        "  pm.response.to.have.status(200);",
+                                        "});",
+                                        "",
+                                        "pm.test('Шинэчилсэн title буцаасан байх ёстой', () => {",
+                                        "  const data = pm.response.json();",
+                                        "  pm.expect(data.title).to.eql('Шинэчилсэн гарчиг');",
+                                        "});",
+                                        "",
+                                        "pm.test('ID зөв байх ёстой', () => {",
+                                        "  const data = pm.response.json();",
+                                        "  pm.expect(data.id).to.eql(1);",
+                                        "});"
+                                    ]
+                                }
+                            }
+                        ]
+                },  
+                {   
+                    "name": "DELETE — Нийтлэл устгах",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/posts/1",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["posts", "1"]
+                        },
+                        "description": "ID=1 нийтлэлийг устгах — 200 буцаах ёстой"
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200 байх ёстой', () => {",
+                                    "  pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "pm.test('Response 1 секундэд багтах ёстой', () => {",
+                                    "  pm.expect(pm.response.responseTime).to.be.below(1000);",
+                                    "});",
+                                    "",
+                                    "pm.test('Хоосон объект буцаасан байх ёстой', () => {",
+                                    "  const data = pm.response.json();",
+                                    "  pm.expect(data).to.be.an('object');",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Users",
+            "description": "Хэрэглэгчтэй холбоотой request-ууд ба chain жишээ",
+            "item": [
+                {
+                    "name": "GET Users — Хэрэглэгчдийн жагсаалт",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/users",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["users"]
+                        },
+                        "description": "Бүх хэрэглэгчдийг авах — userId chain-д ашиглана"
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200 байх ёстой', () => {",
+                                    "  pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "pm.test('Array буцаасан байх ёстой', () => {",
+                                    "  const data = pm.response.json();",
+                                    "  pm.expect(data).to.be.an('array').with.length.above(0);",
+                                    "});",
+                                    "",
+                                    "pm.test('Хэрэглэгч email-тэй байх ёстой', () => {",
+                                    "  const data = pm.response.json();",
+                                    "  pm.expect(data[0]).to.have.property('email');",
+                                    "  pm.expect(data[0].email).to.match(/@/);",
+                                    "});",
+                                    "",
+                                    "pm.test('Email нь string байх ёстой', () => {",
+                                    "  const data = pm.response.json();",
+                                    "  pm.expect(data[0].email).to.be.a('string');",
+                                    "});",
+                                    "",
+                                    "// Chain: userId-г environment-д хадгалах",
+                                    "const users = pm.response.json();",
+                                    "pm.environment.set('chainedUserId', users[0].id);",
+                                    "console.log('Chained userId:', users[0].id);"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "GET User Posts — Chain жишээ (userId ашиглан)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/posts?userId={{chainedUserId}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["posts"],
+                            "query": [
+                                {
+                                    "key": "userId",
+                                    "value": "{{chainedUserId}}"
+                                }
+                            ]
+                        },
+                        "description": "Өмнөх GET Users response-оос авсан chainedUserId-г ашиглан тухайн хэрэглэгчийн нийтлэлүүдийг авах — chain жишээ"
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200 байх ёстой', () => {",
+                                    "  pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "pm.test('Зөв хэрэглэгчийн нийтлэл буцаасан байх ёстой', () => {",
+                                    "  const data = pm.response.json();",
+                                    "  const userId = pm.environment.get('chainedUserId');",
+                                    "  pm.expect(data).to.be.an('array').with.length.above(0);",
+                                    "  data.forEach(post => {",
+                                    "    pm.expect(post.userId).to.eql(userId);",
+                                    "  });",
+                                    "});",
+                                    "",
+                                    "pm.test('Бизнес дүрэм: title хоосон биш байх ёстой', () => {",
+                                    "  const data = pm.response.json();",
+                                    "  data.forEach(post => {",
+                                    "    pm.expect(post.title).to.be.a('string').and.have.length.above(0);",
+                                    "  });",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Errors",
+            "description": "Negative test-ууд — 4xx алдааг шалгах",
+            "item": [
+                {
+                    "name": "Error — Байхгүй нийтлэл (404)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/posts/999999",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["posts", "999999"]
+                        },
+                        "description": "Байхгүй ID-р хайх — 404 буцаах ёстой (negative test)"
+                    },
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "// Pre-request: байхгүй ID-г тодорхойлох",
+                                    "pm.environment.set('nonExistentId', 999999);",
+                                    "console.log('Testing with non-existent ID:', 999999);"
+                                ]
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 404 байх ёстой (negative test)', () => {",
+                                    "  pm.response.to.have.status(404);",
+                                    "});",
+                                    "",
+                                    "pm.test('Response 1 секундэд багтах ёстой', () => {",
+                                    "  pm.expect(pm.response.responseTime).to.be.below(1000);",
+                                    "});",
+                                    "",
+                                    "pm.test('Response хоосон объект байх ёстой', () => {",
+                                    "  const data = pm.response.json();",
+                                    "  pm.expect(data).to.be.an('object');",
+                                    "  // JSONPlaceholder {} буцаадаг — энэ нь зөв алдааны зам",
+                                    "  pm.expect(Object.keys(data).length).to.eql(0);",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
