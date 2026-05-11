@@ -1,0 +1,45 @@
+name: API Tests — JSONPlaceholder
+
+on: [push, pull_request]
+
+jobs:
+  newman:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: |
+          npm install -g newman newman-reporter-htmlextra
+          npm install express
+
+      - name: Start mock server
+        run: |
+          node server/index.js &
+          sleep 2
+          echo "Mock server started"
+
+      - name: Run API tests
+        run: |
+          mkdir -p reports
+          newman run postman/collection.json \
+            -e postman/env.ci.json \
+            --reporters cli,junit,htmlextra \
+            --reporter-junit-export reports/api.xml \
+            --reporter-htmlextra-export reports/api.html \
+            --reporter-htmlextra-title "F.CSM311 Lab14 — API Test Report" \
+            --reporter-htmlextra-darkTheme
+
+      - name: Upload тестийн тайлан
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: api-test-report
+          path: reports/
